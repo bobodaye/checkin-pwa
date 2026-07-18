@@ -457,7 +457,7 @@ function save(){localStorage.setItem(REC_KEY,JSON.stringify(records));}
 async function loadHolidaysIfNeeded(year){
   const key=HOL_KEY_PREFIX+year;
   const cached=localStorage.getItem(key);
-  if(cached){try{holidays=JSON.parse(cached);return;}catch(e){}}
+  if(cached){try{holidays=JSON.parse(cached);renderCal();return;}catch(e){}}
   const loading=document.getElementById("holLoading");
   if(loading)loading.style.display="block";
   try{
@@ -524,6 +524,7 @@ function shiftMonth(n){
   closeDaySheet();calMonth+=n;
   if(calMonth<0){calMonth=11;calYear--;}
   if(calMonth>11){calMonth=0;calYear++;}
+  renderCal();
   loadHolidaysIfNeeded(calYear);
 }
 
@@ -646,7 +647,7 @@ function switchTab(t){
   document.getElementById("headerClock").style.display=t==="punch"?"block":"none";
   document.getElementById("appTitle").textContent=t==="punch"?"打卡":(t==="cal"?"日历":"历史");
   closeDaySheet();
-  if(t==="cal"){calYear=new Date().getFullYear();calMonth=new Date().getMonth();loadHolidaysIfNeeded(calYear);}
+  if(t==="cal"){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal();loadHolidaysIfNeeded(calYear);}
   if(t==="history")setHistCurrentMonth();
 }
 

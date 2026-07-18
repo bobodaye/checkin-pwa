@@ -14,7 +14,7 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -221,7 +221,7 @@ def get_port() -> int:
 
 def main():
     port = get_port()
-    server = HTTPServer(("0.0.0.0", port), Handler)
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"打卡应用已启动: http://localhost:{port}")
     print("按 Ctrl+C 停止服务")
     try:
