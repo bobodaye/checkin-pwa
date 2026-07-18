@@ -445,6 +445,7 @@ function cellLabel(d){
 
 let records={};
 let holidays={};
+let holidaysByYear={};  // 按年缓存节假日数据，避免同会话内重复请求后端
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let sheetDate=null;
 let histYear=new Date().getFullYear(), histMonth=new Date().getMonth()+1;
@@ -474,14 +475,17 @@ async function clearAllRemote(){
 }
 
 async function loadHolidaysIfNeeded(year){
+  // 同一会话已加载过的年份：直接用内存缓存，不再请求后端、不弹提示
+  if(holidaysByYear[year]){holidays=holidaysByYear[year];renderCal();return;}
   const loading=document.getElementById("holLoading");
   if(loading)loading.style.display="block";
   try{
     const res=await fetch(`/api/holidays/${year}`,{cache:"no-store"});
     if(!res.ok)throw new Error("HTTP "+res.status);
     const json=await res.json();if(json.error)throw new Error(json.error);
-    holidays=json.data||{};
-    showToast(`已更新 ${year} 年节假日数据`);
+    holidays=json.data||{};holidaysByYear[year]=holidays;
+    // 仅当后端真正从外部 API 拉取到新数据（非缓存命中）时才提示
+    if(!json.cached)showToast(`已更新 ${year} 年节假日数据`);
   }catch(e){console.warn("节假日获取失败:",e);showToast("节假日获取失败，将按周末计算");holidays={};}
   finally{if(loading)loading.style.display="none";renderCal();}
 }
