@@ -144,7 +144,7 @@
   .cal-cell.today{border-color:var(--primary);background:var(--primary-soft);}
   .cal-cell.today.checked{border-color:var(--success);background:var(--success-soft);}
   .cal-cell.sel{outline:2px solid var(--primary);outline-offset:-2px;background:var(--surface-elevated);}
-  .cal-cell.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
+  .cal-cell.other{opacity:.35;}
   .cal-cell.checked{background:var(--success-soft);border-color:rgba(34,197,94,.3);}
   .cal-cell.checked .cal-lunar:not(.hol):not(.term){color:#4ade80;}
   .cal-cell.future{opacity:.35;cursor:default;}
@@ -554,16 +554,18 @@ function renderCal(){
   document.getElementById("calDow").innerHTML=DOW.map(w=>`<div class="cal-dow">${w}</div>`).join("");
   const first=new Date(calYear,calMonth,1).getDay();
   const dim=new Date(calYear,calMonth+1,0).getDate();
+  const prevDim=new Date(calYear,calMonth,0).getDate();
   let cells=[];
-  // 1号前仅用空格子占位，不显示上月末尾日期
-  for(let i=0;i<first;i++)cells.push({empty:true});
+  // 1号前补上月末尾，填满第一行（1号若为周日第一列则 first=0，不补）
+  for(let i=first-1;i>=0;i--)cells.push({d:`${calYear}-${pad(calMonth===0?12:calMonth)}-${pad(prevDim-i)}`,other:true});
   // 当月1号到月底
   for(let i=1;i<=dim;i++)cells.push({d:`${calYear}-${pad(calMonth+1)}-${pad(i)}`});
+  // 月底后补下月月初，仅填满最后一行，不强制凑满6行（月底若正好填满最后一行则不补）
+  let next=1;while(cells.length%7!==0){cells.push({d:`${calYear}-${pad(calMonth===11?1:calMonth+2)}-${pad(next)}`,other:true});next++;}
   const grid=document.getElementById("calGrid");
   grid.innerHTML=cells.map(c=>{
-    if(c.empty)return `<div class="cal-cell empty"></div>`;
     const isToday=c.d===tD;const isFuture=c.d>tD;const work=isExtraWork(c.d);const r=records[c.d];const checked=!!(r&&r.on&&r.off);
-    const cls=["cal-cell"];if(isToday)cls.push("today");if(checked)cls.push("checked");if(isFuture)cls.push("future");
+    const cls=["cal-cell"];if(isToday)cls.push("today");if(c.other)cls.push("other");if(checked)cls.push("checked");if(isFuture)cls.push("future");
     const badge=shouldShowRestBadge(c.d)?`<div class="cal-badge rest">休</div>`:(work?`<div class="cal-badge work">班</div>`:"");
     const lbl=cellLabel(c.d);
     const clickAttr=isFuture?"":`onclick="openDaySheet('${c.d}')"`;
