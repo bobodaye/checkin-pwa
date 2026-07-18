@@ -1,4 +1,4 @@
-const CACHE_NAME = "punch-pwa-v3";
+const CACHE_NAME = "punch-pwa-v4";
 const ASSETS = [
   "/",
   "/index.html",

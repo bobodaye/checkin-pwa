@@ -608,7 +608,7 @@ function initHistoryPickers(){
   const yearSel=document.getElementById("histYear");const monthSel=document.getElementById("histMonth");
   if(!yearSel||!monthSel)return;
   const now=new Date();const currentY=now.getFullYear();
-  let yearOpts="";for(let y=currentY-5;y<=currentY+2;y++)yearOpts+=`<option value="${y}" ${y===histYear?"selected":""}>${y}年</option>`;
+  let yearOpts="";for(let y=currentY-10;y<=currentY+5;y++)yearOpts+=`<option value="${y}" ${y===histYear?"selected":""}>${y}年</option>`;
   let monthOpts="";for(let m=1;m<=12;m++)monthOpts+=`<option value="${m}" ${m===histMonth?"selected":""}>${m}月</option>`;
   yearSel.innerHTML=yearOpts;monthSel.innerHTML=monthOpts;
 }
