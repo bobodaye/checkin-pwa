@@ -506,7 +506,7 @@ function shouldShowRestBadge(d){if(isExtraWork(d))return false;if(isHoliday(d)||
 function dayTypeLabel(d){
   if(isHoliday(d))return {cls:"hol",text:holidayName(d)};
   if(isExtraWork(d))return {cls:"work",text:"补班"};
-  if(isRestDay(d))return {cls:"rest",text:"休息"};
+  if(isRestDay(d))return {cls:"rest",text:"休息日"};
   return {cls:"",text:"工作日"};
 }
 
@@ -625,7 +625,7 @@ function renderHistory(){
   if(days.length===0){container.innerHTML='<div class="hist-empty">该月没有记录</div>';return;}
   container.innerHTML=days.map(day=>{
     const r=records[day];const dm=new Date(day+"T00:00:00");
-    let tagHtml="";if(isHoliday(day))tagHtml=`<span class="hist-tag hol">${holidayName(day)}</span>`;else if(isExtraWork(day))tagHtml=`<span class="hist-tag work">补班</span>`;else if(isRestDay(day))tagHtml=`<span class="hist-tag rest">休息</span>`;
+    let tagHtml="";if(isHoliday(day))tagHtml=`<span class="hist-tag hol">${holidayName(day)}</span>`;else if(isExtraWork(day))tagHtml=`<span class="hist-tag work">补班</span>`;else if(isRestDay(day))tagHtml=`<span class="hist-tag rest">休息日</span>`;
     const statusColor=(r&&r.on&&r.off)?'var(--success)':((isWorkday(day)&&day<=todayStr())?'var(--danger)':'var(--rest)');
     return `<div class="hist-row">
       <div class="hist-row-left">
@@ -646,7 +646,7 @@ function deleteHistoryRow(day){if(!confirm(`确定删除 ${day} 的打卡记录�
 function exportData(){
   const days=Object.keys(records).filter(day=>historyMatches(day)).sort();
   if(days.length===0){alert("当前月份没有数据可导出");return;}
-  const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息";return `${day},${WEEK[dm.getDay()]},${formatTimeForDisplay(r.on)},${formatTimeForDisplay(r.off)},${workHours(r.on,r.off)},${t}`;}).join("\n");
+  const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息日";return `${day},${WEEK[dm.getDay()]},${formatTimeForDisplay(r.on)},${formatTimeForDisplay(r.off)},${workHours(r.on,r.off)},${t}`;}).join("\n");
   const blob=new Blob([content],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`打卡记录_${histYear}-${pad(histMonth)}.csv`;a.click();
 }
 function clearAll(){if(confirm("确定清空所有打卡记录？此操作不可恢复。")){records={};clearAllRemote();renderPunch();renderHistory();}}
