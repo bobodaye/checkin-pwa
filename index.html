@@ -43,31 +43,35 @@
   body{
     margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     color:var(--ink);background:linear-gradient(160deg,var(--bg) 0%,var(--bg-2) 50%,#0f172a 100%);
-    min-height:100vh;padding:0 0 84px;position:relative;-webkit-font-smoothing:antialiased;
+    min-height:100vh;padding:0 0 28px;position:relative;-webkit-font-smoothing:antialiased;
   }
   .app{width:100%;max-width:520px;margin:0 auto;padding:16px 14px 0;}
   .head{
-    text-align:center;color:#fff;padding:24px 16px 20px;margin:0 -14px 16px;
+    text-align:center;color:#fff;padding:24px 16px 18px;margin:0 -14px 12px;
     background:rgba(255,255,255,.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
     border-radius:0 0 24px 24px;border:1px solid rgba(255,255,255,.08);border-top:none;position:relative;
   }
   .head::after{content:"";position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);}
   .head .date{font-size:14px;opacity:.85;letter-spacing:.5px;font-weight:500;}
   .head .time{font-size:48px;font-weight:700;letter-spacing:1px;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 16px rgba(0,0,0,.2);}
-  .head .status-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.1);font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.08);}
+  .head .status-badge{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.1);font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.08);}
   .head .status-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;}
 
-  .tabs{
-    position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;
-    background:rgba(255,255,255,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,.06);
-    padding:8px 12px 12px;z-index:50;
+  .tabbar-wrap{display:flex;justify-content:center;margin:0 0 22px;}
+  .tabbar{
+    position:relative;display:inline-flex;background:rgba(255,255,255,.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px;box-shadow:0 8px 32px rgba(0,0,0,.18);
   }
-  .tab-inner{display:flex;gap:10px;max-width:520px;flex:1;}
-  .tab{
-    flex:1;text-align:center;padding:12px 6px;border-radius:var(--radius-sm);color:var(--ink-muted);font-weight:700;font-size:13px;
-    cursor:pointer;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:4px;background:transparent;border:none;
+  .tabbar-item{
+    position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:10px 24px;border-radius:999px;border:none;
+    background:transparent;color:rgba(255,255,255,.62);font-size:14px;font-weight:600;cursor:pointer;transition:color .25s;white-space:nowrap;
   }
-  .tab.active{background:var(--surface-3);color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .tabbar-item.active{color:#fff;}
+  .tabbar-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .tabbar-glider{
+    position:absolute;top:4px;bottom:4px;background:var(--primary);border-radius:999px;z-index:0;
+    box-shadow:0 4px 14px rgba(59,130,246,.42);transition:all .3s cubic-bezier(0.2,0.8,0.2,1);
+  }
 
   .card{background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5);}
   .card h3{margin:0 0 16px;font-size:15px;color:var(--ink-muted);font-weight:700;display:flex;justify-content:space-between;align-items:center;}
@@ -191,6 +195,20 @@
     <div class="status-badge" id="statusBadge" style="color:#94a3b8">今天还没打卡</div>
   </div>
 
+  <div class="tabbar-wrap">
+    <div class="tabbar" id="tabbar">
+      <div class="tabbar-glider" id="tabGlider"></div>
+      <button class="tabbar-item active" id="tabPunch" onclick="switchTab('punch')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>打卡</span>
+      </button>
+      <button class="tabbar-item" id="tabCal" onclick="switchTab('cal')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>日历</span>
+      </button>
+    </div>
+  </div>
+
   <!-- 打卡面板 -->
   <div class="panel show" id="panelPunch">
     <div class="card">
@@ -259,17 +277,6 @@
         <div class="dd-edit" id="ddEditForm" style="display:none;">
           <button class="btn" style="background:var(--primary);width:100%;" onclick="saveDayEdit()"><span>保存</span></button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab-inner">
-      <div class="tab active" id="tabPunch" onclick="switchTab('punch')">
-        <span>打卡</span>
-      </div>
-      <div class="tab" id="tabCal" onclick="switchTab('cal')">
-        <span>日历</span>
       </div>
     </div>
   </div>
@@ -530,8 +537,14 @@ function render(){
 }
 
 function switchTab(t){
-  document.getElementById("tabPunch").classList.toggle("active",t==="punch");
-  document.getElementById("tabCal").classList.toggle("active",t==="cal");
+  const punchBtn=document.getElementById("tabPunch"), calBtn=document.getElementById("tabCal"), glider=document.getElementById("tabGlider");
+  punchBtn.classList.toggle("active", t==="punch");
+  calBtn.classList.toggle("active", t==="cal");
+  const active=t==="punch"?punchBtn:calBtn;
+  if(glider && active){
+    glider.style.width=active.offsetWidth+"px";
+    glider.style.transform=`translateX(${active.offsetLeft}px)`;
+  }
   document.getElementById("panelPunch").classList.toggle("show",t==="punch");
   document.getElementById("panelCal").classList.toggle("show",t==="cal");
   if(t==="cal"){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal();}
@@ -657,7 +670,9 @@ if("serviceWorker" in navigator){
 }
 
 // 初始化
-renderClock();render();
+renderClock();
+switchTab('punch');
+render();
 setInterval(renderClock,1000);
 loadHolidaysIfNeeded(new Date().getFullYear());
 </script>
