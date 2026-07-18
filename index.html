@@ -144,7 +144,7 @@
   .cal-cell.today{border-color:var(--primary);background:var(--primary-soft);}
   .cal-cell.today.checked{border-color:var(--success);background:var(--success-soft);}
   .cal-cell.sel{outline:2px solid var(--primary);outline-offset:-2px;background:var(--surface-elevated);}
-  .cal-cell.other{opacity:.35;}
+  .cal-cell.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
   .cal-cell.checked{background:var(--success-soft);border-color:rgba(34,197,94,.3);}
   .cal-cell.checked .cal-lunar:not(.hol):not(.term){color:#4ade80;}
   .cal-cell.future{opacity:.35;cursor:default;}
@@ -554,15 +554,16 @@ function renderCal(){
   document.getElementById("calDow").innerHTML=DOW.map(w=>`<div class="cal-dow">${w}</div>`).join("");
   const first=new Date(calYear,calMonth,1).getDay();
   const dim=new Date(calYear,calMonth+1,0).getDate();
-  const prevDim=new Date(calYear,calMonth,0).getDate();
   let cells=[];
-  for(let i=first-1;i>=0;i--)cells.push({d:`${calYear}-${pad(calMonth===0?12:calMonth)}-${pad(prevDim-i)}`,other:true});
-  for(let i=1;i<=dim;i++)cells.push({d:`${calYear}-${pad(calMonth+1)}-${pad(i)}`,other:false});
-  let next=1;while(cells.length%7!==0||cells.length<42){cells.push({d:`${calYear}-${pad(calMonth===11?1:calMonth+2)}-${pad(next)}`,other:true});next++;}
+  // 1号前仅用空格子占位，不显示上月末尾日期
+  for(let i=0;i<first;i++)cells.push({empty:true});
+  // 当月1号到月底
+  for(let i=1;i<=dim;i++)cells.push({d:`${calYear}-${pad(calMonth+1)}-${pad(i)}`});
   const grid=document.getElementById("calGrid");
   grid.innerHTML=cells.map(c=>{
+    if(c.empty)return `<div class="cal-cell empty"></div>`;
     const isToday=c.d===tD;const isFuture=c.d>tD;const work=isExtraWork(c.d);const r=records[c.d];const checked=!!(r&&r.on&&r.off);
-    const cls=["cal-cell"];if(isToday)cls.push("today");if(c.other)cls.push("other");if(checked)cls.push("checked");if(isFuture)cls.push("future");
+    const cls=["cal-cell"];if(isToday)cls.push("today");if(checked)cls.push("checked");if(isFuture)cls.push("future");
     const badge=shouldShowRestBadge(c.d)?`<div class="cal-badge rest">休</div>`:(work?`<div class="cal-badge work">班</div>`:"");
     const lbl=cellLabel(c.d);
     const clickAttr=isFuture?"":`onclick="openDaySheet('${c.d}')"`;
@@ -608,7 +609,7 @@ function initHistoryPickers(){
   const yearSel=document.getElementById("histYear");const monthSel=document.getElementById("histMonth");
   if(!yearSel||!monthSel)return;
   const now=new Date();const currentY=now.getFullYear();
-  let yearOpts="";for(let y=currentY-10;y<=currentY+5;y++)yearOpts+=`<option value="${y}" ${y===histYear?"selected":""}>${y}年</option>`;
+  let yearOpts="";for(let y=currentY-2;y<=currentY;y++)yearOpts+=`<option value="${y}" ${y===histYear?"selected":""}>${y}年</option>`;
   let monthOpts="";for(let m=1;m<=12;m++)monthOpts+=`<option value="${m}" ${m===histMonth?"selected":""}>${m}月</option>`;
   yearSel.innerHTML=yearOpts;monthSel.innerHTML=monthOpts;
 }
