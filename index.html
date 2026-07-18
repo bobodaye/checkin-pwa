@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#3b82f6" />
+<meta name="description" content="记录上下班打卡时间，支持法定节假日与调休日历视图" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="打卡" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>上下班打卡</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --bg-2:#111827;
+    --surface:#ffffff;
+    --surface-2:#f8fafc;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-muted:#64748b;
+    --ink-subtle:#94a3b8;
+    --line:#e2e8f0;
+    --line-subtle:#f1f5f9;
+    --primary:#3b82f6;
+    --primary-soft:#eff6ff;
+    --primary-dark:#2563eb;
+    --success:#10b981;
+    --success-soft:#ecfdf5;
+    --warning:#f59e0b;
+    --danger:#ef4444;
+    --danger-soft:#fef2f2;
+    --rest:#9ca3af;
+    --shadow:0 20px 40px -12px rgba(2,8,23,0.35);
+    --shadow-sm:0 4px 12px -4px rgba(2,8,23,0.15);
+    --radius:20px;
+    --radius-sm:14px;
+    --radius-xs:10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:linear-gradient(160deg,var(--bg) 0%,var(--bg-2) 50%,#0f172a 100%);
+    min-height:100vh;padding:0 0 84px;position:relative;-webkit-font-smoothing:antialiased;
+  }
+  .app{width:100%;max-width:520px;margin:0 auto;padding:16px 14px 0;}
+  .head{
+    text-align:center;color:#fff;padding:24px 16px 20px;margin:0 -14px 16px;
+    background:rgba(255,255,255,.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:0 0 24px 24px;border:1px solid rgba(255,255,255,.08);border-top:none;position:relative;
+  }
+  .head::after{content:"";position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);}
+  .head .date{font-size:14px;opacity:.85;letter-spacing:.5px;font-weight:500;}
+  .head .time{font-size:48px;font-weight:700;letter-spacing:1px;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 16px rgba(0,0,0,.2);}
+  .head .status-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.1);font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.08);}
+  .head .status-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;}
+
+  .tabs{
+    position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;
+    background:rgba(255,255,255,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,.06);
+    padding:8px 12px 12px;z-index:50;
+  }
+  .tab-inner{display:flex;gap:10px;max-width:520px;flex:1;}
+  .tab{
+    flex:1;text-align:center;padding:12px 6px;border-radius:var(--radius-sm);color:var(--ink-muted);font-weight:700;font-size:13px;
+    cursor:pointer;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:4px;background:transparent;border:none;
+  }
+  .tab.active{background:var(--surface-3);color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.06);}
+
+  .card{background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5);}
+  .card h3{margin:0 0 16px;font-size:15px;color:var(--ink-muted);font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+  .card h3 .title-flex{display:flex;align-items:center;gap:8px;}
+  .card h3 .badge{font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;}
+  .card h3 .badge.hol{background:var(--danger-soft);color:var(--danger);}
+  .card h3 .badge.work{background:var(--primary-soft);color:var(--primary-dark);}
+  .card h3 .badge.rest{background:var(--surface-3);color:var(--ink-muted);}
+  .card h3 .badge.plain{background:var(--surface-3);color:var(--ink);}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .btn{
+    border:none;border-radius:var(--radius);padding:22px 10px;font-size:15px;font-weight:700;color:#fff;
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .08s,box-shadow .15s,filter .15s;
+    box-shadow:var(--shadow-sm);position:relative;overflow:hidden;letter-spacing:.3px;
+  }
+  .btn::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.25),transparent);pointer-events:none;}
+  .btn:active{transform:scale(.96);}
+  .btn .t{font-size:13px;font-weight:600;opacity:.95;font-variant-numeric:tabular-nums;}
+  .btn.on{background:linear-gradient(135deg,#34d399,#059669);}
+  .btn.off{background:linear-gradient(135deg,#fbbf24,#d97706);}
+  .btn.done{filter:saturate(.7) brightness(1.05);box-shadow:inset 0 2px 4px rgba(0,0,0,.1);}
+  .btn.done::after{content:"";position:absolute;top:10px;right:10px;width:6px;height:10px;border:solid rgba(255,255,255,.85);border-width:0 2px 2px 0;transform:rotate(45deg);border-radius:0;background:transparent;}
+
+  .row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-subtle);font-size:14px;}
+  .row:last-child{border-bottom:none;}
+  .row .k{color:var(--ink-muted);font-weight:500;}
+  .row .v{font-weight:700;font-variant-numeric:tabular-nums;}
+  .v.ok{color:var(--success);} .v.warn{color:var(--warning);} .v.no{color:var(--ink-subtle);} .v.miss{color:var(--danger);}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;}
+  .stat{background:var(--surface-2);border-radius:var(--radius-sm);padding:16px 6px;border:1px solid var(--line);transition:.15s;}
+  .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+  .stat .n{font-size:26px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:12px;color:var(--ink-muted);margin-top:4px;font-weight:500;}
+
+  .actions{display:flex;gap:10px;}
+  .mini{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:12px 8px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:.12s;}
+  .mini:active{background:var(--surface-3);transform:scale(.98);}
+  .mini.danger{color:var(--danger);border-color:#fecaca;background:var(--danger-soft);}
+  .mini.danger:active{background:#fee2e2;}
+
+  .empty{text-align:center;color:var(--ink-subtle);font-size:14px;padding:24px 0;}
+  .tip{font-size:12px;color:var(--ink-muted);margin-top:12px;line-height:1.6;}
+
+  /* 日历 */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .cal-head .m{font-size:17px;font-weight:800;color:var(--ink);}
+  .cal-nav{border:none;background:var(--surface-3);border-radius:var(--radius-xs);width:40px;height:40px;font-size:20px;cursor:pointer;color:var(--ink);transition:.12s;display:flex;align-items:center;justify-content:center;}
+  .cal-nav:active{background:var(--line);transform:scale(.95);}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-dow{text-align:center;font-size:12px;color:var(--ink-muted);padding:6px 0;font-weight:700;}
+  .cal-cell{border-radius:var(--radius-sm);padding:12px 10px 8px;min-height:70px;background:var(--surface-2);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;position:relative;cursor:pointer;border:1px solid transparent;overflow:hidden;transition:.12s;}
+  .cal-cell:hover{background:var(--surface-3);transform:translateY(-1px);}
+  .cal-cell:active{background:var(--line);}
+  .cal-cell.today{border-color:var(--primary);background:var(--primary-soft);box-shadow:0 0 0 1px rgba(59,130,246,.1);}
+  .cal-cell.today.checked{border-color:var(--primary);background:#dcfce7;}
+  .cal-cell.sel{outline:2px solid var(--primary);outline-offset:-2px;background:var(--surface);}
+  .cal-cell.other{opacity:.35;}
+  .cal-cell.checked{background:#dcfce7;border-color:#86efac;}
+  .cal-cell.checked .cal-lunar:not(.hol):not(.term){color:#166534;}
+  .cal-day{font-size:14px;font-weight:700;line-height:1.2;color:var(--ink);}
+  .cal-lunar{font-size:10px;color:var(--ink-subtle);margin-top:auto;padding-bottom:2px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cal-lunar.hol{color:var(--danger);}
+  .cal-lunar.term{color:var(--success);}
+  .cal-rest,.cal-work{position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+  .cal-rest{background:var(--primary);}
+  .cal-work{background:var(--warning);}
+  .legend{display:none;}
+  .day-detail{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px;display:none;}
+  .day-detail.show{display:block;animation:fadeIn .25s ease;}
+  .dd-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+  .dd-btns .btn{padding:14px 8px;font-size:14px;border-radius:var(--radius-sm);}
+  .dd-edit{margin-top:12px;display:none;}
+  .dd-row{position:relative;}
+  .dd-input{
+    display:none;border:1px solid var(--line);border-radius:var(--radius-xs);padding:6px 10px;
+    font-size:14px;font-weight:700;color:var(--ink);font-family:inherit;font-variant-numeric:tabular-nums;
+    background:var(--surface-2);width:120px;text-align:right;
+  }
+  .dd-input:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary);background:var(--surface);}
+  .dd-input::-webkit-calendar-picker-indicator{filter:invert(0.4);cursor:pointer;}
+
+  .loading-bar{height:3px;background:linear-gradient(90deg,transparent,var(--primary),transparent);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:999px;margin-top:12px;}
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+  .panel{display:none;}
+  .panel.show{display:block;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* 历史记录 */
+  .hist{display:flex;flex-direction:column;}
+  .hist-row{padding:16px 0;border-bottom:1px solid var(--line-subtle);}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-main{display:flex;flex-direction:column;gap:10px;}
+  .hist-top{display:flex;justify-content:space-between;align-items:center;}
+  .hist-date{display:flex;align-items:center;gap:8px;}
+  .hist-date .date-text{font-size:16px;font-weight:800;color:var(--ink);}
+  .hist-date .meta{font-size:11px;color:var(--ink-subtle);font-weight:600;background:var(--surface-3);padding:2px 8px;border-radius:999px;}
+  .hist-date .meta.tag-hol{color:var(--danger);background:var(--danger-soft);}
+  .hist-date .meta.tag-work{color:var(--primary-dark);background:var(--primary-soft);}
+  .hist-bottom{display:flex;justify-content:space-between;align-items:center;padding-left:14px;}
+  .time-range{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;}
+  .time-range .t{font-size:15px;font-weight:700;color:var(--ink);}
+  .time-range .t.no{color:var(--ink-subtle);}
+  .time-range .sep{color:var(--ink-subtle);font-weight:500;font-size:13px;}
+  .work-length{font-size:13px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums;}
+  .status{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .del{cursor:pointer;color:var(--ink-subtle);padding:6px 10px;border-radius:8px;transition:.12s;font-size:12px;font-weight:700;}
+  .del:hover{background:var(--danger-soft);color:var(--danger);}
+
+  /* 节假日弹窗 */
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-120%);background:rgba(15,23,42,.92);color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:100;opacity:0;transition:.3s;max-width:90%;text-align:center;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <div class="date" id="dateLine">载入中</div>
+    <div class="time" id="clock">--:--:--</div>
+    <div class="status-badge" id="statusBadge" style="color:#94a3b8">今天还没打卡</div>
+  </div>
+
+  <!-- 打卡面板 -->
+  <div class="panel show" id="panelPunch">
+    <div class="card">
+      <h3><span class="title-flex">今日打卡</span><span class="badge" id="todayBadge">工作日</span></h3>
+      <div class="btns">
+        <button class="btn on" id="btnOn" onclick="punch(todayStr(),'on')">
+          <span>上班打卡</span><span class="t" id="tOn">未打卡</span>
+        </button>
+        <button class="btn off" id="btnOff" onclick="punch(todayStr(),'off')">
+          <span>下班打卡</span><span class="t" id="tOff">未打卡</span>
+        </button>
+      </div>
+      <div class="row" style="margin-top:14px;"><span class="k">今日工时</span><span class="v" id="todayWork">-</span></div>
+    </div>
+
+    <div class="card">
+      <h3>本月统计</h3>
+      <div class="stats">
+        <div class="stat"><div class="n" id="stShould">0</div><div class="l">应打卡</div></div>
+        <div class="stat"><div class="n" id="stDone">0</div><div class="l">已打卡</div></div>
+        <div class="stat"><div class="n" id="stMiss">0</div><div class="l">缺卡</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>历史记录</h3>
+      <div class="hist" id="hist"><div class="empty">还没有记录，打完卡就会出现在这里</div></div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="mini" onclick="exportData()">导出记录</button>
+        <button class="mini danger" onclick="clearAll()">清空数据</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日历面板 -->
+  <div class="panel" id="panelCal">
+    <div class="card">
+      <div class="cal-head">
+        <button class="cal-nav" onclick="shiftMonth(-1)">&#8249;</button>
+        <div class="m" id="calMonth">-</div>
+        <button class="cal-nav" onclick="shiftMonth(1)">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calDow"></div>
+      <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
+      <div class="loading-bar" id="holLoading" style="display:none;"></div>
+      <div class="day-detail" id="dayDetail">
+        <div class="row" style="border:none;padding-top:0;">
+          <span class="k" id="ddDate">-</span>
+          <span class="v" id="ddType">-</span>
+        </div>
+        <div class="row dd-row">
+          <span class="k">上班</span>
+          <span class="v" id="ddOn">-</span>
+          <input type="time" id="ddOnInput" class="dd-input" />
+        </div>
+        <div class="row dd-row">
+          <span class="k">下班</span>
+          <span class="v" id="ddOff">-</span>
+          <input type="time" id="ddOffInput" class="dd-input" />
+        </div>
+        <div class="row"><span class="k">工时</span><span class="v" id="ddWork">-</span></div>
+        <div class="dd-btns" id="ddPunchBtns">
+          <button class="btn on" id="ddBtnOn" onclick="punch(selDate,'on')"><span>上班打卡</span></button>
+          <button class="btn off" id="ddBtnOff" onclick="punch(selDate,'off')"><span>下班打卡</span></button>
+        </div>
+        <div class="dd-edit" id="ddEditForm" style="display:none;">
+          <button class="btn" style="background:var(--primary);width:100%;" onclick="saveDayEdit()"><span>保存</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab-inner">
+      <div class="tab active" id="tabPunch" onclick="switchTab('punch')">
+        <span>打卡</span>
+      </div>
+      <div class="tab" id="tabCal" onclick="switchTab('cal')">
+        <span>日历</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REC_KEY="punchClockRecords";
+const HOL_KEY_PREFIX="punchClockHolidaysV3_";
+const WEEK=["周日","周一","周二","周三","周四","周五","周六"];
+const DOW=["日","一","二","三","四","五","六"];
+const pad=n=>String(n).padStart(2,"0");
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());};
+const timeNow=()=>{const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());};
+
+// 农历数据与转换（1900-2100）
+const LUNAR_INFO=[0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,0x0d520];
+const LN1=['日','一','二','三','四','五','六','七','八','九','十'];
+const LN2=['初','十','廿','卅'];
+const LN3=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+function lunarYearDays(y){let s=348;for(let i=0x8000;i>0x8;i>>=1)s+=((LUNAR_INFO[y-1900]&i)?1:0);return s+lunarLeapDays(y);}
+function lunarLeapMonth(y){return LUNAR_INFO[y-1900]&0xf;}
+function lunarLeapDays(y){return lunarLeapMonth(y)?((LUNAR_INFO[y-1900]&0x10000)?30:29):0;}
+function lunarMonthDays(y,m){return (LUNAR_INFO[y-1900]&(0x10000>>m))?30:29;}
+function lunarDayText(d){if(d===10)return'初十';if(d===20)return'二十';if(d===30)return'三十';return LN2[Math.floor(d/10)]+LN1[d%10];}
+function lunarDate(d){
+  const dm=new Date(d+"T00:00:00");const y=dm.getFullYear(),m=dm.getMonth()+1,day=dm.getDate();
+  if(y<1900||y>2100)return'';
+  const base=new Date(1900,0,31).getTime();
+  let offset=Math.floor((dm.getTime()-base)/86400000);
+  let year=1900;for(;year<2101&&offset>0;year++){const days=lunarYearDays(year);offset-=days;}
+  if(offset<0){offset+=lunarYearDays(year-1);year--;}
+  const leap=lunarLeapMonth(year);let isLeap=false,month=1,lastDays=0;
+  for(;month<13&&offset>0;month++){
+    if(leap>0&&month===leap+1&&!isLeap){month--;isLeap=true;lastDays=lunarLeapDays(year);}else{lastDays=lunarMonthDays(year,month);}
+    if(isLeap&&month===leap+1)isLeap=false;
+    offset-=lastDays;
+  }
+  if(offset===0&&leap>0&&month===leap+1){if(isLeap){isLeap=false;}else{isLeap=true;month--;}}
+  if(offset<0){offset+=lastDays;month--;}
+  const lDay=offset+1,lMonth=month;
+  if(lDay===1)return LN3[lMonth-1]+'月';
+  return lunarDayText(lDay);
+}
+
+// 二十四节气（1900-2099）
+const SOLAR_TERMS=['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
+const C20=[6.11,20.84,4.6295,19.4599,6.3826,21.4155,5.59,20.888,6.318,21.86,6.5,22.2,7.928,23.65,8.35,23.95,8.44,23.822,9.098,24.218,8.218,23.08,7.9,22.6];
+const C21=[5.4055,20.12,3.87,18.73,5.63,20.646,4.81,20.1,5.52,21.04,5.678,21.37,7.108,22.83,7.5,23.13,7.646,23.042,8.318,23.438,7.438,22.36,7.18,21.94];
+const TERM_EXCEPT={
+  0:{1982:1,2019:-1},   // 小寒
+  1:{2082:1},           // 大寒
+  3:{2026:-1},          // 雨水
+  5:{2084:1},           // 春分
+  7:{1911:1},           // 立夏
+  8:{2008:1},           // 小满
+  9:{1902:1},           // 芒种
+  11:{1928:1},          // 夏至
+  12:{1925:1,2016:1},   // 小暑
+  13:{1922:1},          // 大暑
+  14:{2002:1},          // 立秋
+  16:{1927:1},          // 白露
+  17:{1942:1},          // 秋分
+  19:{2089:1},          // 霜降
+  20:{2089:1},          // 立冬
+  21:{1978:1},          // 小雪
+  22:{1954:1},          // 大雪
+  23:{1918:-1,2021:-1}  // 冬至
+};
+function termDay(y,i){
+  const Y=y%100;
+  const cArr=(y<2000)?C20:((y===2000&&i<4)?C20:C21);
+  const c=cArr[i];
+  const L=(i<4)?Math.trunc((Y-1)/4):Math.trunc(Y/4);
+  let d=Math.trunc(Y*0.2422+c)-L;
+  const e=TERM_EXCEPT[i];
+  if(e&&e[y]) d+=e[y];
+  return d;
+}
+function solarTerm(d){
+  const dm=new Date(d+"T00:00:00");const y=dm.getFullYear(),m=dm.getMonth()+1,day=dm.getDate();
+  if(y<1900||y>2099)return'';
+  const idx=(m-1)*2;
+  if(termDay(y,idx)===day) return SOLAR_TERMS[idx];
+  if(termDay(y,idx+1)===day) return SOLAR_TERMS[idx+1];
+  return'';
+}
+function cellLabel(d){
+  if(isHoliday(d)) return {text:holidayName(d),cls:'hol'};
+  const st=solarTerm(d);
+  if(st) return {text:st,cls:'term'};
+  return {text:lunarDate(d),cls:''};
+}
+
+let records=JSON.parse(localStorage.getItem(REC_KEY)||"{}");
+let holidays={};
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let selDate=null;
+
+function save(){localStorage.setItem(REC_KEY,JSON.stringify(records));}
+
+async function loadHolidaysIfNeeded(year){
+  const key=HOL_KEY_PREFIX+year;
+  const cached=localStorage.getItem(key);
+  if(cached){
+    try{holidays=JSON.parse(cached);return;}catch(e){}
+  }
+  const loading=document.getElementById("holLoading");
+  if(loading)loading.style.display="block";
+  try{
+    const res=await fetch(`/api/holidays/${year}`,{cache:"no-store"});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const json=await res.json();
+    if(json.error)throw new Error(json.error);
+    holidays=json.data||{};
+    localStorage.setItem(key,JSON.stringify(holidays));
+    showToast(`已更新 ${year} 年节假日数据`);
+  }catch(e){
+    console.warn("节假日获取失败:",e);
+    showToast("节假日获取失败，将按周末计算");
+    holidays={};
+  }finally{
+    if(loading)loading.style.display="none";
+    render();
+  }
+}
+
+function isHoliday(d){return holidays[d]?.type==="holiday";}
+function isRest(d){return holidays[d]?.type==="rest";}
+function isExtraWork(d){return holidays[d]?.type==="workday";}
+function holidayName(d){return holidays[d]?.name||"";}
+function isWorkday(d){
+  if(isHoliday(d))return false;
+  if(isExtraWork(d))return true;
+  if(isRest(d))return false;
+  const w=new Date(d+"T00:00:00").getDay();
+  return w>=1&&w<=5;
+}
+function isRestDay(d){
+  if(isExtraWork(d))return false;
+  if(isRest(d))return true;
+  const w=new Date(d+"T00:00:00").getDay();
+  return w===0||w===6;
+}
+function shouldShowRestBadge(d){
+  if(isExtraWork(d))return false;
+  if(isHoliday(d)||isRest(d))return true;
+  return false;
+}
+function dayTypeLabel(d){
+  const dm=new Date(d+"T00:00:00");
+  if(isHoliday(d))return {cls:"hol",text:holidayName(d)};
+  if(isExtraWork(d))return {cls:"work",text:"补班"};
+  if(isRestDay(d))return {cls:"rest",text:"休息日"};
+  return {cls:"",text:"工作日"};
+}
+
+function punch(date,type){
+  if(!records[date])records[date]={};
+  records[date][type]=timeNow();
+  save();render();
+  if(selDate===date)showDayDetail(date);
+}
+function delDay(d){if(!confirm(`确定删除 ${d} 的打卡记录？`))return;delete records[d];save();render();}
+
+function renderClock(){
+  const d=new Date();
+  document.getElementById("dateLine").textContent=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${WEEK[d.getDay()]}`;
+  document.getElementById("clock").textContent=timeNow();
+}
+
+function workHours(on,off){
+  if(!on||!off)return "-";
+  const [h1,m1,s1]=on.split(":").map(Number),[h2,m2,s2]=off.split(":").map(Number);
+  let sec=(h2*3600+m2*60+s2)-(h1*3600+m1*60+s1);
+  if(sec<0)sec+=24*3600;
+  return Math.floor(sec/3600)+"h"+pad(Math.floor(sec%3600/60))+"m";
+}
+
+function updateStatusBadge(d){
+  const rec=records[d]||{};
+  const el=document.getElementById("statusBadge");
+  const colors={on:"#10b981", off:"#f59e0b", none:"#94a3b8"};
+  if(rec.on&&rec.off){el.textContent="今日已完整打卡";el.style.color=colors.on;}
+  else if(rec.on){el.textContent="已上班，待下班";el.style.color=colors.off;}
+  else{el.textContent="今天还没打卡";el.style.color=colors.none;}
+}
+
+function render(){
+  const d=todayStr(),rec=records[d]||{};
+  document.getElementById("tOn").textContent=rec.on?rec.on:"未打卡";
+  document.getElementById("tOff").textContent=rec.off?rec.off:"未打卡";
+  document.getElementById("btnOn").classList.toggle("done",!!rec.on);
+  document.getElementById("btnOff").classList.toggle("done",!!rec.off);
+  document.getElementById("todayWork").textContent=workHours(rec.on,rec.off);
+  const badge=document.getElementById("todayBadge");
+  const tl=dayTypeLabel(d);
+  badge.textContent=tl.text;
+  badge.className="badge "+(tl.cls||"plain");
+  updateStatusBadge(d);
+
+  // 历史
+  const days=Object.keys(records).sort().reverse();
+  const hist=document.getElementById("hist");
+  if(days.length===0){hist.innerHTML='<div class="empty">还没有记录，打完卡就会出现在这里</div>';}
+  else{
+    hist.innerHTML=days.map(day=>{
+      const r=records[day];
+      const dm=new Date(day+"T00:00:00");
+      let typeTag="";
+      if(isHoliday(day))typeTag=`<span class="meta tag-hol">${holidayName(day)}</span>`;
+      else if(isExtraWork(day))typeTag=`<span class="meta tag-work">补班</span>`;
+      const statusDot=(r&&r.on&&r.off)?'var(--success)':((isWorkday(day)&&day<=d)?'var(--danger)':'var(--rest)');
+      return `<div class="hist-row">
+        <div class="hist-main">
+          <div class="hist-top">
+            <div class="hist-date">
+              <span class="status" style="background:${statusDot}"></span>
+              <span class="date-text">${day.slice(5)}</span>
+              <span class="meta">${WEEK[dm.getDay()]}</span>
+              ${typeTag}
+            </div>
+            <span class="del" onclick="delDay('${day}')">删除</span>
+          </div>
+          <div class="hist-bottom">
+            <div class="time-range">
+              <span class="t ${r.on?'':'no'}">${r.on||'--:--'}</span>
+              <span class="sep">-</span>
+              <span class="t ${r.off?'':'no'}">${r.off||'--:--'}</span>
+            </div>
+            <span class="work-length">${workHours(r.on,r.off)}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // 统计（本月）
+  const ym=d.slice(0,7);
+  let should=0,done=0,miss=0;
+  const [Y,M]=ym.split("-").map(Number);
+  const dim=new Date(Y,M,0).getDate();
+  for(let i=1;i<=dim;i++){
+    const ds=`${Y}-${pad(M)}-${pad(i)}`;
+    if(!isWorkday(ds))continue;
+    if(ds>d)continue;
+    should++;
+    const r=records[ds];
+    if(r&&r.on&&r.off)done++;
+    else miss++;
+  }
+  document.getElementById("stShould").textContent=should;
+  document.getElementById("stDone").textContent=done;
+  document.getElementById("stMiss").textContent=miss;
+
+  if(document.getElementById("panelCal").classList.contains("show"))renderCal();
+}
+
+function switchTab(t){
+  document.getElementById("tabPunch").classList.toggle("active",t==="punch");
+  document.getElementById("tabCal").classList.toggle("active",t==="cal");
+  document.getElementById("panelPunch").classList.toggle("show",t==="punch");
+  document.getElementById("panelCal").classList.toggle("show",t==="cal");
+  if(t==="cal"){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal();}
+}
+
+function shiftMonth(n){
+  calMonth+=n;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  loadHolidaysIfNeeded(calYear);
+  renderCal();
+}
+
+function renderCal(){
+  const tD=todayStr();
+  document.getElementById("calMonth").textContent=`${calYear}年${calMonth+1}月`;
+  document.getElementById("calDow").innerHTML=DOW.map(w=>`<div class="cal-dow">${w}</div>`).join("");
+  const first=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const prevDim=new Date(calYear,calMonth,0).getDate();
+  let cells=[];
+  for(let i=first-1;i>=0;i--)cells.push({d:`${calYear}-${pad(calMonth===0?12:calMonth)}-${pad(prevDim-i)}`,other:true});
+  for(let i=1;i<=dim;i++)cells.push({d:`${calYear}-${pad(calMonth+1)}-${pad(i)}`,other:false});
+  let next=1;
+  while(cells.length%7!==0||cells.length<42){cells.push({d:`${calYear}-${pad(calMonth===11?1:calMonth+2)}-${pad(next)}`,other:true});next++;}
+  const grid=document.getElementById("calGrid");
+  grid.innerHTML=cells.map(c=>{
+    const isToday=c.d===tD;
+    const hol=isHoliday(c.d), work=isExtraWork(c.d);
+    const r=records[c.d];
+    const checked=!!(r&&r.on&&r.off);
+    const cls=["cal-cell"];
+    if(isToday)cls.push("today");
+    if(c.d===selDate)cls.push("sel");
+    if(c.other)cls.push("other");
+    if(checked)cls.push("checked");
+    const restBadge=shouldShowRestBadge(c.d)?`<div class="cal-rest">休</div>`:"";
+    const workBadge=work?`<div class="cal-work">班</div>`:"";
+    const lbl=cellLabel(c.d);
+    const lunarTxt=`<div class="cal-lunar ${lbl.cls}">${lbl.text}</div>`;
+    return `<div class="${cls.join(' ')}" onclick="selDay('${c.d}')">
+      ${restBadge}${workBadge}
+      <div class="cal-day">${parseInt(c.d.slice(8))}</div>
+      ${lunarTxt}
+    </div>`;
+  }).join("");
+}
+
+function selDay(d){
+  selDate=d;
+  const tD=todayStr();
+  const dm=new Date(d+"T00:00:00");
+  const r=records[d]||{};
+  document.getElementById("ddDate").textContent=`${d} ${WEEK[dm.getDay()]}`;
+  const tl=dayTypeLabel(d);
+  document.getElementById("ddType").textContent=tl.text;
+  document.getElementById("ddType").className="v "+(tl.cls==="hol"?"miss":(tl.cls==="work"?"ok":""));
+  document.getElementById("ddOn").textContent=r.on||"未打卡";
+  document.getElementById("ddOn").className="v "+(r.on?"ok":"no");
+  document.getElementById("ddOff").textContent=r.off||"未打卡";
+  document.getElementById("ddOff").className="v "+(r.off?"ok":"no");
+  document.getElementById("ddWork").textContent=workHours(r.on,r.off);
+  document.getElementById("ddBtnOn").classList.toggle("done",!!r.on);
+  document.getElementById("ddBtnOff").classList.toggle("done",!!r.off);
+  const onInput=document.getElementById("ddOnInput"),offInput=document.getElementById("ddOffInput");
+  onInput.value=r.on?r.on:"08:30";offInput.value=r.off?r.off:"18:00";
+  const isToday=d===tD;
+  document.getElementById("ddPunchBtns").style.display=isToday?"grid":"none";
+  document.getElementById("ddEditForm").style.display=isToday?"none":"block";
+  onInput.style.display=isToday?"none":"inline-block";
+  offInput.style.display=isToday?"none":"inline-block";
+  document.getElementById("ddOn").style.display=isToday?"inline":"none";
+  document.getElementById("ddOff").style.display=isToday?"inline":"none";
+  document.getElementById("dayDetail").classList.add("show");
+  renderCal();
+}
+
+function normalizeTime(v){
+  if(!v)return "";
+  if(v.length===5)return v+":00";
+  return v;
+}
+
+function saveDayEdit(){
+  if(!selDate)return;
+  const onIn=document.getElementById("ddOnInput").value;
+  const offIn=document.getElementById("ddOffInput").value;
+  if(!records[selDate])records[selDate]={};
+  if(onIn)records[selDate].on=normalizeTime(onIn);
+  else delete records[selDate].on;
+  if(offIn)records[selDate].off=normalizeTime(offIn);
+  else delete records[selDate].off;
+  if(!records[selDate].on&&!records[selDate].off)delete records[selDate];
+  save();render();showDayDetail(selDate);
+  showToast(`已更新 ${selDate} 的打卡时间`);
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+function exportData(){
+  const days=Object.keys(records).sort();
+  if(days.length===0){alert("还没有数据可导出");return;}
+  const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息日";return `${day},${WEEK[dm.getDay()]},${r.on||""},${r.off||""},${workHours(r.on,r.off)},${t}`;}).join("\n");
+  const blob=new Blob([content],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="打卡记录.csv";a.click();
+}
+
+function clearAll(){
+  if(confirm("确定清空所有打卡记录？此操作不可恢复。")){records={};save();render();}
+}
+
+function showDayDetail(d){selDay(d);}
+
+// 注册 Service Worker
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").then(()=>console.log("SW registered")).catch(e=>console.warn("SW registration failed:",e));
+  });
+}
+
+// 初始化
+renderClock();render();
+setInterval(renderClock,1000);
+loadHolidaysIfNeeded(new Date().getFullYear());
+</script>
+</body>
+</html>
