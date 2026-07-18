@@ -4,3 +4,9 @@ __pycache__/
 
 # WorkBuddy local workspace memory
 .workbuddy/
+
+# SQLite 运行时数据（打卡记录与节假日缓存）
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

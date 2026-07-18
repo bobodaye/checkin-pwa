@@ -384,8 +384,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const REC_KEY="punchClockRecords";
-const HOL_KEY_PREFIX="punchClockHolidaysV4_";
 const WEEK=["周日","周一","周二","周三","周四","周五","周六"];
 const DOW=["日","一","二","三","四","五","六"];
 const pad=n=>String(n).padStart(2,"0");
@@ -445,26 +443,44 @@ function cellLabel(d){
   return {text:lunarDate(d),cls:''};
 }
 
-let records=JSON.parse(localStorage.getItem(REC_KEY)||"{}");
+let records={};
 let holidays={};
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let sheetDate=null;
 let histYear=new Date().getFullYear(), histMonth=new Date().getMonth()+1;
 let activeTab='punch';
 
-function save(){localStorage.setItem(REC_KEY,JSON.stringify(records));}
+// ---- 后端 API 封装（数据持久化在 SQLite） ----
+async function api(method,path,body){
+  const opt={method,headers:{"Content-Type":"application/json"}};
+  if(body!==undefined)opt.body=JSON.stringify(body);
+  const res=await fetch(path,opt);
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  const ct=res.headers.get("Content-Type")||"";
+  return ct.includes("application/json")?res.json():null;
+}
+async function persistDay(date){
+  const r=records[date]||{};
+  try{await api("PUT",`/api/records/${date}`,{on:r.on||null,off:r.off||null});}
+  catch(e){showToast("保存失败："+e.message);console.error(e);}
+}
+async function deleteDayRemote(date){
+  try{await api("DELETE",`/api/records/${date}`);}
+  catch(e){showToast("删除失败："+e.message);console.error(e);}
+}
+async function clearAllRemote(){
+  try{await api("DELETE","/api/records");}
+  catch(e){showToast("清空失败："+e.message);console.error(e);}
+}
 
 async function loadHolidaysIfNeeded(year){
-  const key=HOL_KEY_PREFIX+year;
-  const cached=localStorage.getItem(key);
-  if(cached){try{holidays=JSON.parse(cached);renderCal();return;}catch(e){}}
   const loading=document.getElementById("holLoading");
   if(loading)loading.style.display="block";
   try{
     const res=await fetch(`/api/holidays/${year}`,{cache:"no-store"});
     if(!res.ok)throw new Error("HTTP "+res.status);
     const json=await res.json();if(json.error)throw new Error(json.error);
-    holidays=json.data||{};localStorage.setItem(key,JSON.stringify(holidays));
+    holidays=json.data||{};
     showToast(`已更新 ${year} 年节假日数据`);
   }catch(e){console.warn("节假日获取失败:",e);showToast("节假日获取失败，将按周末计算");holidays={};}
   finally{if(loading)loading.style.display="none";renderCal();}
@@ -492,10 +508,10 @@ function dayTypeLabel(d){
 
 function punch(date,type){
   if(!records[date])records[date]={};
-  records[date][type]=timeNow();save();renderPunch();
+  records[date][type]=timeNow();persistDay(date);renderPunch();
   if(sheetDate===date)openDaySheet(date);
 }
-function delDay(d){if(!confirm(`确定删除 ${d} 的打卡记录？`))return;delete records[d];save();renderPunch();renderHistory();}
+function delDay(d){if(!confirm(`确定删除 ${d} 的打卡记录？`))return;delete records[d];deleteDayRemote(d);renderPunch();renderHistory();}
 
 function renderPunch(){
   const d=todayStr(),rec=records[d]||{};
@@ -577,8 +593,9 @@ function saveSheetEdit(){
   if(!records[sheetDate])records[sheetDate]={};
   if(onIn)records[sheetDate].on=normalizeTime(onIn);else delete records[sheetDate].on;
   if(offIn)records[sheetDate].off=normalizeTime(offIn);else delete records[sheetDate].off;
-  if(!records[sheetDate].on&&!records[sheetDate].off)delete records[sheetDate];
-  save();renderPunch();renderCal();renderHistory();
+  if(!records[sheetDate].on&&!records[sheetDate].off){delete records[sheetDate];deleteDayRemote(sheetDate);}
+  else persistDay(sheetDate);
+  renderPunch();renderCal();renderHistory();
   const r=records[sheetDate]||{};document.getElementById("sheetWork").textContent=workHours(r.on,r.off);
   showToast(`已更新 ${sheetDate} 的打卡时间`);
 }
@@ -620,7 +637,7 @@ function renderHistory(){
     </div>`;
   }).join("");
 }
-function deleteHistoryRow(day){if(!confirm(`确定删除 ${day} 的打卡记录？`))return;delete records[day];save();renderPunch();renderHistory();showToast(`已删除 ${day} 的记录`);}
+function deleteHistoryRow(day){if(!confirm(`确定删除 ${day} 的打卡记录？`))return;delete records[day];deleteDayRemote(day);renderPunch();renderHistory();showToast(`已删除 ${day} 的记录`);}
 
 function exportData(){
   const days=Object.keys(records).filter(day=>historyMatches(day)).sort();
@@ -628,7 +645,7 @@ function exportData(){
   const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息";return `${day},${WEEK[dm.getDay()]},${formatTimeForDisplay(r.on)},${formatTimeForDisplay(r.off)},${workHours(r.on,r.off)},${t}`;}).join("\n");
   const blob=new Blob([content],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`打卡记录_${histYear}-${pad(histMonth)}.csv`;a.click();
 }
-function clearAll(){if(confirm("确定清空所有打卡记录？此操作不可恢复。")){records={};save();renderPunch();renderHistory();}}
+function clearAll(){if(confirm("确定清空所有打卡记录？此操作不可恢复。")){records={};clearAllRemote();renderPunch();renderHistory();}}
 
 function showToast(msg){
   const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
@@ -651,11 +668,34 @@ function switchTab(t){
   if(t==="history")setHistCurrentMonth();
 }
 
+// 一次性迁移：把旧 localStorage 数据导入数据库后清除
+async function migrateLocalIfNeeded(){
+  try{
+    const old=localStorage.getItem("punchClockRecords");
+    if(old){
+      const oldRecs=JSON.parse(old);
+      if(oldRecs&&Object.keys(oldRecs).length>0){
+        await api("POST","/api/records/import",oldRecs);
+        showToast("已将本地打卡记录迁移到数据库");
+      }
+      localStorage.removeItem("punchClockRecords");
+    }
+    Object.keys(localStorage).filter(k=>k.startsWith("punchClockHolidaysV4_")).forEach(k=>localStorage.removeItem(k));
+  }catch(e){console.warn("本地数据迁移失败:",e);}
+}
+
 // 初始化
-renderPunch();
-switchTab('punch');
-setInterval(()=>{if(activeTab==='punch')renderPunch();},1000);
-loadHolidaysIfNeeded(new Date().getFullYear());
+async function init(){
+  switchTab('punch');
+  setInterval(()=>{if(activeTab==='punch')renderPunch();},1000);
+  renderPunch();
+  await migrateLocalIfNeeded();
+  try{records=await api("GET","/api/records")||{};}
+  catch(e){console.error("加载打卡记录失败:",e);showToast("加载打卡记录失败");records={};}
+  renderPunch();renderCal();renderHistory();
+  loadHolidaysIfNeeded(new Date().getFullYear());
+}
+init();
 
 // 注册 Service Worker
 if("serviceWorker" in navigator){
