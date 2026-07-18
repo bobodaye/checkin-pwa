@@ -141,19 +141,51 @@
   .cal-rest{background:var(--primary);}
   .cal-work{background:var(--warning);}
   .legend{display:none;}
-  .day-detail{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px;display:none;}
-  .day-detail.show{display:block;animation:fadeIn .25s ease;}
-  .dd-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
-  .dd-btns .btn{padding:14px 8px;font-size:14px;border-radius:var(--radius-sm);}
-  .dd-edit{margin-top:12px;display:none;}
-  .dd-row{position:relative;}
+
+  /* 选中日期详情卡片 */
+  .day-card{
+    display:none;background:var(--surface);border-radius:var(--radius);padding:18px;margin-top:16px;
+    box-shadow:var(--shadow);border:1px solid var(--line);animation:fadeIn .25s ease;
+  }
+  .day-card.show{display:block;}
+  .day-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .day-card-date{font-size:17px;font-weight:800;color:var(--ink);}
+  .day-card-type{
+    display:inline-block;font-size:12px;font-weight:700;color:var(--ink-muted);margin-top:6px;
+    padding:3px 10px;border-radius:999px;background:var(--surface-3);
+  }
+  .day-card-type.hol{color:var(--danger);background:var(--danger-soft);}
+  .day-card-type.work{color:var(--primary-dark);background:var(--primary-soft);}
+  .day-card-close{
+    width:32px;height:32px;border-radius:50%;border:none;background:var(--surface-2);color:var(--ink-muted);
+    font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;
+  }
+  .day-card-close:hover{background:var(--line);color:var(--ink);}
+  .day-card-close:active{background:var(--surface-3);transform:scale(.95);}
+  .day-card-body{display:flex;flex-direction:column;}
+  .dd-field{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-subtle);}
+  .dd-field:last-child{border-bottom:none;}
+  .dd-label{width:44px;font-size:14px;font-weight:700;color:var(--ink-muted);}
   .dd-input{
-    display:none;border:1px solid var(--line);border-radius:var(--radius-xs);padding:6px 10px;
-    font-size:14px;font-weight:700;color:var(--ink);font-family:inherit;font-variant-numeric:tabular-nums;
-    background:var(--surface-2);width:120px;text-align:right;
+    flex:1;border:1px solid var(--line);border-radius:var(--radius-xs);padding:10px 12px;
+    font-size:15px;font-weight:700;color:var(--ink);font-family:inherit;font-variant-numeric:tabular-nums;
+    background:var(--surface-2);transition:.12s;
   }
   .dd-input:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary);background:var(--surface);}
+  .dd-input:disabled{background:transparent;border-color:transparent;color:var(--ink-muted);opacity:.7;}
   .dd-input::-webkit-calendar-picker-indicator{filter:invert(0.4);cursor:pointer;}
+  .dd-status{font-size:13px;font-weight:600;color:var(--ink-subtle);min-width:56px;text-align:right;}
+  .dd-value{flex:1;font-size:15px;font-weight:700;color:var(--primary);text-align:right;font-variant-numeric:tabular-nums;}
+  .day-card-actions{margin-top:16px;}
+  .day-card-actions .btn{
+    width:100%;padding:14px;font-size:15px;font-weight:700;color:#fff;border:none;border-radius:var(--radius-sm);
+    background:var(--primary);cursor:pointer;transition:.12s;
+  }
+  .day-card-actions .btn:active{transform:scale(.98);filter:brightness(.95);}
+  .day-card-hint{
+    margin-top:16px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-muted);
+    padding:12px;background:var(--surface-2);border-radius:var(--radius-xs);
+  }
 
   .loading-bar{height:3px;background:linear-gradient(90deg,transparent,var(--primary),transparent);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:999px;margin-top:12px;}
   @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
@@ -254,30 +286,37 @@
       <div class="cal-grid" id="calDow"></div>
       <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
       <div class="loading-bar" id="holLoading" style="display:none;"></div>
-      <div class="day-detail" id="dayDetail">
-        <div class="row" style="border:none;padding-top:0;">
-          <span class="k" id="ddDate">-</span>
-          <span class="v" id="ddType">-</span>
+    </div>
+
+    <!-- 选中日期详情卡片 -->
+    <div class="day-card" id="dayCard">
+      <div class="day-card-header">
+        <div>
+          <div class="day-card-date" id="ddDate">-</div>
+          <div class="day-card-type" id="ddType">-</div>
         </div>
-        <div class="row dd-row">
-          <span class="k">上班</span>
-          <span class="v" id="ddOn">-</span>
+        <button class="day-card-close" onclick="closeDayCard()" aria-label="关闭">×</button>
+      </div>
+      <div class="day-card-body">
+        <div class="dd-field">
+          <span class="dd-label">上班</span>
           <input type="time" id="ddOnInput" class="dd-input" />
+          <span class="dd-status" id="ddOnStatus">未打卡</span>
         </div>
-        <div class="row dd-row">
-          <span class="k">下班</span>
-          <span class="v" id="ddOff">-</span>
+        <div class="dd-field">
+          <span class="dd-label">下班</span>
           <input type="time" id="ddOffInput" class="dd-input" />
+          <span class="dd-status" id="ddOffStatus">未打卡</span>
         </div>
-        <div class="row"><span class="k">工时</span><span class="v" id="ddWork">-</span></div>
-        <div class="dd-btns" id="ddPunchBtns">
-          <button class="btn on" id="ddBtnOn" onclick="punch(selDate,'on')"><span>上班打卡</span></button>
-          <button class="btn off" id="ddBtnOff" onclick="punch(selDate,'off')"><span>下班打卡</span></button>
-        </div>
-        <div class="dd-edit" id="ddEditForm" style="display:none;">
-          <button class="btn" style="background:var(--primary);width:100%;" onclick="saveDayEdit()"><span>保存</span></button>
+        <div class="dd-field">
+          <span class="dd-label">工时</span>
+          <span class="dd-value" id="ddWork">-</span>
         </div>
       </div>
+      <div class="day-card-actions" id="dayCardActions">
+        <button class="btn" style="background:var(--primary);width:100%;" onclick="saveDayEdit()"><span>保存修改</span></button>
+      </div>
+      <div class="day-card-hint" id="dayCardHint" style="display:none;">未来日期暂不支持编辑</div>
     </div>
   </div>
 </div>
@@ -547,10 +586,11 @@ function switchTab(t){
   }
   document.getElementById("panelPunch").classList.toggle("show",t==="punch");
   document.getElementById("panelCal").classList.toggle("show",t==="cal");
-  if(t==="cal"){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal();}
+  if(t==="cal"){closeDayCard();calYear=new Date().getFullYear();calMonth=new Date().getMonth();loadHolidaysIfNeeded(calYear);renderCal();}
 }
 
 function shiftMonth(n){
+  closeDayCard();
   calMonth+=n;
   if(calMonth<0){calMonth=11;calYear--;}
   if(calMonth>11){calMonth=0;calYear++;}
@@ -598,27 +638,27 @@ function selDay(d){
   const tD=todayStr();
   const dm=new Date(d+"T00:00:00");
   const r=records[d]||{};
+  const isFuture=d>tD;
   document.getElementById("ddDate").textContent=`${d} ${WEEK[dm.getDay()]}`;
   const tl=dayTypeLabel(d);
-  document.getElementById("ddType").textContent=tl.text;
-  document.getElementById("ddType").className="v "+(tl.cls==="hol"?"miss":(tl.cls==="work"?"ok":""));
-  document.getElementById("ddOn").textContent=r.on||"未打卡";
-  document.getElementById("ddOn").className="v "+(r.on?"ok":"no");
-  document.getElementById("ddOff").textContent=r.off||"未打卡";
-  document.getElementById("ddOff").className="v "+(r.off?"ok":"no");
-  document.getElementById("ddWork").textContent=workHours(r.on,r.off);
-  document.getElementById("ddBtnOn").classList.toggle("done",!!r.on);
-  document.getElementById("ddBtnOff").classList.toggle("done",!!r.off);
+  const typeEl=document.getElementById("ddType");
+  typeEl.textContent=tl.text;
+  typeEl.className="day-card-type "+(tl.cls==="hol"?"hol":(tl.cls==="work"?"work":""));
   const onInput=document.getElementById("ddOnInput"),offInput=document.getElementById("ddOffInput");
   onInput.value=r.on?r.on:"08:30";offInput.value=r.off?r.off:"18:00";
-  const isToday=d===tD;
-  document.getElementById("ddPunchBtns").style.display=isToday?"grid":"none";
-  document.getElementById("ddEditForm").style.display=isToday?"none":"block";
-  onInput.style.display=isToday?"none":"inline-block";
-  offInput.style.display=isToday?"none":"inline-block";
-  document.getElementById("ddOn").style.display=isToday?"inline":"none";
-  document.getElementById("ddOff").style.display=isToday?"inline":"none";
-  document.getElementById("dayDetail").classList.add("show");
+  onInput.disabled=isFuture;offInput.disabled=isFuture;
+  document.getElementById("ddOnStatus").textContent=r.on?r.on:"未打卡";
+  document.getElementById("ddOffStatus").textContent=r.off?r.off:"未打卡";
+  document.getElementById("ddWork").textContent=workHours(r.on,r.off);
+  document.getElementById("dayCardActions").style.display=isFuture?"none":"block";
+  document.getElementById("dayCardHint").style.display=isFuture?"block":"none";
+  document.getElementById("dayCard").classList.add("show");
+  renderCal();
+}
+
+function closeDayCard(){
+  document.getElementById("dayCard").classList.remove("show");
+  selDate=null;
   renderCal();
 }
 
