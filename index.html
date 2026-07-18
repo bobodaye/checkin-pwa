@@ -209,11 +209,6 @@
     background-repeat:no-repeat;background-position:right 10px center;background-size:16px 16px;
   }
   .hist-picker select:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary);background-color:var(--surface);}
-  .hist-this-month{
-    border:none;background:var(--primary);color:#fff;border-radius:var(--radius-xs);padding:11px 16px;
-    font-size:14px;font-weight:700;cursor:pointer;transition:.12s;white-space:nowrap;
-  }
-  .hist-this-month:active{transform:scale(.97);filter:brightness(.95);}
 
   .hist-list{display:flex;flex-direction:column;}
   .hist-month{margin-bottom:14px;}
@@ -319,7 +314,6 @@
           <label for="histMonth">月份</label>
           <select id="histMonth" onchange="changeHistMonth(this.value)"></select>
         </div>
-        <button class="hist-this-month" id="histThisMonth" onclick="setHistCurrentMonth()">本月</button>
       </div>
     </div>
 
@@ -707,7 +701,7 @@ function switchTab(t){
   document.getElementById("panelCal").classList.toggle("show",t==="cal");
   document.getElementById("panelHistory").classList.toggle("show",t==="history");
   if(t==="cal"){closeDayCard();calYear=new Date().getFullYear();calMonth=new Date().getMonth();loadHolidaysIfNeeded(calYear);renderCal();}
-  if(t==="history"){renderHistory();}
+  if(t==="history"){setHistCurrentMonth();}
 }
 
 function shiftMonth(n){
