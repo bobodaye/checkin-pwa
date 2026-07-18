@@ -63,7 +63,7 @@
     border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px;box-shadow:0 8px 32px rgba(0,0,0,.18);
   }
   .tabbar-item{
-    position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:10px 24px;border-radius:999px;border:none;
+    position:relative;z-index:1;display:flex;align-items:center;gap:6px;padding:10px 18px;border-radius:999px;border:none;
     background:transparent;color:rgba(255,255,255,.62);font-size:14px;font-weight:600;cursor:pointer;transition:color .25s;white-space:nowrap;
   }
   .tabbar-item.active{color:#fff;}
@@ -133,6 +133,10 @@
   .cal-cell.other{opacity:.35;}
   .cal-cell.checked{background:#dcfce7;border-color:#86efac;}
   .cal-cell.checked .cal-lunar:not(.hol):not(.term){color:#166534;}
+  .cal-cell.future{opacity:.42;cursor:default;}
+  .cal-cell.future:hover,.cal-cell.future:active{background:var(--surface-2);transform:none;}
+  .cal-cell.today.future{border-color:transparent;background:var(--surface-2);box-shadow:none;}
+  .cal-cell.sel.future{outline:none;}
   .cal-day{font-size:14px;font-weight:700;line-height:1.2;color:var(--ink);}
   .cal-lunar{font-size:10px;color:var(--ink-subtle);margin-top:auto;padding-bottom:2px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cal-lunar.hol{color:var(--danger);}
@@ -182,10 +186,6 @@
     background:var(--primary);cursor:pointer;transition:.12s;
   }
   .day-card-actions .btn:active{transform:scale(.98);filter:brightness(.95);}
-  .day-card-hint{
-    margin-top:16px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-muted);
-    padding:12px;background:var(--surface-2);border-radius:var(--radius-xs);
-  }
 
   .loading-bar{height:3px;background:linear-gradient(90deg,transparent,var(--primary),transparent);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:999px;margin-top:12px;}
   @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
@@ -193,26 +193,77 @@
   .panel.show{display:block;animation:fadeIn .25s ease;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
-  /* 历史记录 */
-  .hist{display:flex;flex-direction:column;}
-  .hist-row{padding:16px 0;border-bottom:1px solid var(--line-subtle);}
+  /* 历史页面 */
+  .hist-tools{padding:16px 18px;}
+  .hist-search-wrap{position:relative;margin-bottom:14px;}
+  .hist-search{
+    width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px 12px 40px;
+    font-size:14px;font-weight:600;color:var(--ink);background:var(--surface-2);
+    font-family:inherit;transition:.12s;
+  }
+  .hist-search:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary);background:var(--surface);}
+  .hist-search-wrap .search-icon{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+    stroke:var(--ink-subtle);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;
+  }
+  .hist-filters{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 14px;
+    font-size:12px;font-weight:700;color:var(--ink-muted);cursor:pointer;transition:.12s;
+  }
+  .chip.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 4px 12px rgba(59,130,246,.25);}
+  .chip:active{transform:scale(.96);}
+
+  .hist-list{display:flex;flex-direction:column;}
+  .hist-month{margin-bottom:14px;}
+  .hist-month:last-child{margin-bottom:0;}
+  .hist-month-header{
+    display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin:-20px -20px 12px;
+    background:var(--surface-2);border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer;user-select:none;transition:.12s;
+  }
+  .hist-month-header:hover{background:var(--surface-3);}
+  .hist-month-header .m-title{font-size:14px;font-weight:800;color:var(--ink);}
+  .hist-month-header .m-meta{font-size:12px;font-weight:600;color:var(--ink-muted);}
+  .hist-month-header .m-arrow{font-size:12px;color:var(--ink-muted);transition:.2s;}
+  .hist-month.collapsed .hist-month-header .m-arrow{transform:rotate(-90deg);}
+  .hist-month-body{overflow:hidden;transition:max-height .25s ease;}
+  .hist-month.collapsed .hist-month-body{max-height:0;}
+
+  .hist-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 10px;border-bottom:1px solid var(--line-subtle);transition:.12s;
+  }
   .hist-row:last-child{border-bottom:none;}
-  .hist-main{display:flex;flex-direction:column;gap:10px;}
-  .hist-top{display:flex;justify-content:space-between;align-items:center;}
-  .hist-date{display:flex;align-items:center;gap:8px;}
-  .hist-date .date-text{font-size:16px;font-weight:800;color:var(--ink);}
-  .hist-date .meta{font-size:11px;color:var(--ink-subtle);font-weight:600;background:var(--surface-3);padding:2px 8px;border-radius:999px;}
-  .hist-date .meta.tag-hol{color:var(--danger);background:var(--danger-soft);}
-  .hist-date .meta.tag-work{color:var(--primary-dark);background:var(--primary-soft);}
-  .hist-bottom{display:flex;justify-content:space-between;align-items:center;padding-left:14px;}
-  .time-range{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;}
-  .time-range .t{font-size:15px;font-weight:700;color:var(--ink);}
-  .time-range .t.no{color:var(--ink-subtle);}
-  .time-range .sep{color:var(--ink-subtle);font-weight:500;font-size:13px;}
-  .work-length{font-size:13px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums;}
-  .status{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
-  .del{cursor:pointer;color:var(--ink-subtle);padding:6px 10px;border-radius:8px;transition:.12s;font-size:12px;font-weight:700;}
-  .del:hover{background:var(--danger-soft);color:var(--danger);}
+  .hist-row:hover{background:var(--surface-2);border-radius:var(--radius-xs);}
+  .hist-row-left{display:flex;align-items:center;gap:12px;}
+  .hist-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .hist-date-box{display:flex;flex-direction:column;gap:2px;min-width:64px;}
+  .hist-date-box .d{font-size:16px;font-weight:800;color:var(--ink);}
+  .hist-date-box .w{font-size:11px;font-weight:600;color:var(--ink-muted);}
+  .hist-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .hist-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;}
+  .hist-tag.hol{background:var(--danger-soft);color:var(--danger);}
+  .hist-tag.work{background:var(--primary-soft);color:var(--primary-dark);}
+  .hist-tag.rest{background:var(--surface-3);color:var(--ink-muted);}
+  .hist-row-right{display:flex;align-items:center;gap:12px;}
+  .hist-times{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums;}
+  .hist-times .t{font-size:14px;font-weight:700;color:var(--ink);min-width:42px;text-align:right;}
+  .hist-times .t.no{color:var(--ink-subtle);}
+  .hist-times .sep{color:var(--ink-subtle);font-size:13px;}
+  .hist-work{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:4px 10px;border-radius:999px;}
+  .hist-delete{
+    width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--ink-subtle);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;
+  }
+  .hist-delete:hover{background:var(--danger-soft);color:var(--danger);}
+  .hist-delete svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .hist-load-more{
+    width:100%;margin-top:14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);
+    padding:12px;font-size:14px;font-weight:700;color:var(--ink-muted);cursor:pointer;transition:.12s;
+  }
+  .hist-load-more:hover{background:var(--surface-2);color:var(--ink);}
+  .hist-load-more:disabled{opacity:.5;cursor:not-allowed;}
+  .hist-actions{display:flex;gap:10px;}
 
   /* 节假日弹窗 */
   .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-120%);background:rgba(15,23,42,.92);color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:100;opacity:0;transition:.3s;max-width:90%;text-align:center;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);}
@@ -237,6 +288,10 @@
       <button class="tabbar-item" id="tabCal" onclick="switchTab('cal')">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span>日历</span>
+      </button>
+      <button class="tabbar-item" id="tabHistory" onclick="switchTab('history')">
+        <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>历史</span>
       </button>
     </div>
   </div>
@@ -264,14 +319,44 @@
         <div class="stat"><div class="n" id="stMiss">0</div><div class="l">缺卡</div></div>
       </div>
     </div>
+  </div>
 
-    <div class="card">
-      <h3>历史记录</h3>
-      <div class="hist" id="hist"><div class="empty">还没有记录，打完卡就会出现在这里</div></div>
-      <div class="actions" style="margin-top:14px;">
-        <button class="mini" onclick="exportData()">导出记录</button>
-        <button class="mini danger" onclick="clearAll()">清空数据</button>
+  <!-- 历史面板 -->
+  <div class="panel" id="panelHistory">
+    <div class="card hist-summary">
+      <h3>历史概览</h3>
+      <div class="stats">
+        <div class="stat"><div class="n" id="hiTotal">0</div><div class="l">总记录</div></div>
+        <div class="stat"><div class="n" id="hiComplete">0</div><div class="l">完整打卡</div></div>
+        <div class="stat"><div class="n" id="hiHours">0</div><div class="l">累计工时</div></div>
       </div>
+    </div>
+
+    <div class="card hist-tools">
+      <div class="hist-search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="histSearch" class="hist-search" placeholder="搜索日期，如 2026-07 或 07-19" oninput="filterHistory()" />
+      </div>
+      <div class="hist-filters" id="histFilters">
+        <button class="chip active" data-filter="all" onclick="setHistFilter('all')">全部</button>
+        <button class="chip" data-filter="done" onclick="setHistFilter('done')">已打卡</button>
+        <button class="chip" data-filter="miss" onclick="setHistFilter('miss')">缺卡</button>
+        <button class="chip" data-filter="workday" onclick="setHistFilter('workday')">工作日</button>
+        <button class="chip" data-filter="rest" onclick="setHistFilter('rest')">休息日</button>
+        <button class="chip" data-filter="hol" onclick="setHistFilter('hol')">节假日</button>
+      </div>
+    </div>
+
+    <div class="card" id="histCard">
+      <div class="hist-list" id="histList">
+        <div class="empty">还没有记录</div>
+      </div>
+      <button class="hist-load-more" id="histLoadMore" onclick="loadMoreHistory()">加载更多</button>
+    </div>
+
+    <div class="card hist-actions">
+      <button class="mini" onclick="exportData()">导出记录</button>
+      <button class="mini danger" onclick="clearAll()">清空数据</button>
     </div>
   </div>
 
@@ -316,7 +401,6 @@
       <div class="day-card-actions" id="dayCardActions">
         <button class="btn" style="background:var(--primary);width:100%;" onclick="saveDayEdit()"><span>保存修改</span></button>
       </div>
-      <div class="day-card-hint" id="dayCardHint" style="display:none;">未来日期暂不支持编辑</div>
     </div>
   </div>
 </div>
@@ -331,6 +415,7 @@ const DOW=["日","一","二","三","四","五","六"];
 const pad=n=>String(n).padStart(2,"0");
 const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());};
 const timeNow=()=>{const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());};
+const formatTimeForDisplay=t=>t?t.slice(0,5):"--:--";
 
 // 农历数据与转换（1900-2100）
 const LUNAR_INFO=[0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,0x0d520];
@@ -415,6 +500,8 @@ let records=JSON.parse(localStorage.getItem(REC_KEY)||"{}");
 let holidays={};
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let selDate=null;
+
+let histFilter="all", histSearch="", histLoadedMonths=3;
 
 function save(){localStorage.setItem(REC_KEY,JSON.stringify(records));}
 
@@ -507,8 +594,8 @@ function updateStatusBadge(d){
 
 function render(){
   const d=todayStr(),rec=records[d]||{};
-  document.getElementById("tOn").textContent=rec.on?rec.on:"未打卡";
-  document.getElementById("tOff").textContent=rec.off?rec.off:"未打卡";
+  document.getElementById("tOn").textContent=rec.on?formatTimeForDisplay(rec.on):"未打卡";
+  document.getElementById("tOff").textContent=rec.off?formatTimeForDisplay(rec.off):"未打卡";
   document.getElementById("btnOn").classList.toggle("done",!!rec.on);
   document.getElementById("btnOff").classList.toggle("done",!!rec.off);
   document.getElementById("todayWork").textContent=workHours(rec.on,rec.off);
@@ -517,42 +604,6 @@ function render(){
   badge.textContent=tl.text;
   badge.className="badge "+(tl.cls||"plain");
   updateStatusBadge(d);
-
-  // 历史
-  const days=Object.keys(records).sort().reverse();
-  const hist=document.getElementById("hist");
-  if(days.length===0){hist.innerHTML='<div class="empty">还没有记录，打完卡就会出现在这里</div>';}
-  else{
-    hist.innerHTML=days.map(day=>{
-      const r=records[day];
-      const dm=new Date(day+"T00:00:00");
-      let typeTag="";
-      if(isHoliday(day))typeTag=`<span class="meta tag-hol">${holidayName(day)}</span>`;
-      else if(isExtraWork(day))typeTag=`<span class="meta tag-work">补班</span>`;
-      const statusDot=(r&&r.on&&r.off)?'var(--success)':((isWorkday(day)&&day<=d)?'var(--danger)':'var(--rest)');
-      return `<div class="hist-row">
-        <div class="hist-main">
-          <div class="hist-top">
-            <div class="hist-date">
-              <span class="status" style="background:${statusDot}"></span>
-              <span class="date-text">${day.slice(5)}</span>
-              <span class="meta">${WEEK[dm.getDay()]}</span>
-              ${typeTag}
-            </div>
-            <span class="del" onclick="delDay('${day}')">删除</span>
-          </div>
-          <div class="hist-bottom">
-            <div class="time-range">
-              <span class="t ${r.on?'':'no'}">${r.on||'--:--'}</span>
-              <span class="sep">-</span>
-              <span class="t ${r.off?'':'no'}">${r.off||'--:--'}</span>
-            </div>
-            <span class="work-length">${workHours(r.on,r.off)}</span>
-          </div>
-        </div>
-      </div>`;
-    }).join("");
-  }
 
   // 统计（本月）
   const ym=d.slice(0,7);
@@ -575,18 +626,163 @@ function render(){
   if(document.getElementById("panelCal").classList.contains("show"))renderCal();
 }
 
+// 历史页面
+function setHistFilter(f){
+  histFilter=f;
+  document.querySelectorAll("#histFilters .chip").forEach(c=>c.classList.toggle("active",c.dataset.filter===f));
+  histLoadedMonths=3;
+  renderHistory();
+}
+function filterHistory(){
+  histSearch=document.getElementById("histSearch").value.trim();
+  histLoadedMonths=3;
+  renderHistory();
+}
+function historyMatches(day,r){
+  const s=histSearch.toLowerCase();
+  if(s){
+    const dm=new Date(day+"T00:00:00");
+    const mm=pad(dm.getMonth()+1),dd=pad(dm.getDate()),yyyy=dm.getFullYear();
+    if(!day.includes(s)&&!(`${mm}-${dd}`.includes(s))&&!(`${yyyy}-${mm}`.includes(s))&&!WEEK[dm.getDay()].includes(s)) return false;
+  }
+  switch(histFilter){
+    case "done": return !!(r&&r.on&&r.off);
+    case "miss": return isWorkday(day)&&day<=todayStr()&&!(r&&r.on&&r.off);
+    case "workday": return isWorkday(day);
+    case "rest": return isRestDay(day);
+    case "hol": return isHoliday(day)||isRest(day);
+    default: return true;
+  }
+}
+function groupRecordsByMonth(days){
+  const groups={};
+  for(const day of days){
+    const ym=day.slice(0,7);
+    if(!groups[ym])groups[ym]=[];
+    groups[ym].push(day);
+  }
+  return Object.keys(groups).sort().reverse().map(ym=>({ym,days:groups[ym]}));
+}
+function renderHistorySummary(){
+  const tD=todayStr();
+  let total=0,complete=0,totalMinutes=0;
+  for(const [day,r] of Object.entries(records)){
+    if(!r)continue;
+    if(r.on&&r.off)complete++;
+    if(r.on||r.off)total++;
+    if(r.on&&r.off){
+      const wh=workHours(r.on,r.off);
+      const m=parseInt(wh.replace(/h.*/,''))*60+parseInt(wh.replace(/.*h/,'').replace('m','')||0);
+      if(!isNaN(m))totalMinutes+=m;
+    }
+  }
+  document.getElementById("hiTotal").textContent=total;
+  document.getElementById("hiComplete").textContent=complete;
+  const hours=Math.floor(totalMinutes/60);
+  const mins=totalMinutes%60;
+  document.getElementById("hiHours").textContent= hours?`${hours}h${pad(mins)}m`:(totalMinutes?`${totalMinutes}m`:"0");
+}
+function renderHistory(){
+  const tD=todayStr();
+  const allDays=Object.keys(records).filter(day=>historyMatches(day,records[day])).sort().reverse();
+  const grouped=groupRecordsByMonth(allDays);
+  const container=document.getElementById("histList");
+  const loadMoreBtn=document.getElementById("histLoadMore");
+  if(grouped.length===0){
+    container.innerHTML='<div class="empty">没有找到记录</div>';
+    loadMoreBtn.style.display="none";
+    renderHistorySummary();
+    return;
+  }
+  const visibleGroups=grouped.slice(0,histLoadedMonths);
+  const fragment=document.createDocumentFragment();
+  visibleGroups.forEach((g,idx)=>{
+    const monthEl=document.createElement("div");
+    monthEl.className="hist-month";
+    monthEl.innerHTML=renderHistoryMonth(g.ym,g.days);
+    fragment.appendChild(monthEl);
+  });
+  container.innerHTML="";
+  container.appendChild(fragment);
+  loadMoreBtn.style.display=visibleGroups.length<grouped.length?"block":"none";
+  renderHistorySummary();
+}
+function renderHistoryMonth(ym,days){
+  const [Y,M]=ym.split("-").map(Number);
+  const title=`${Y}年${M}月`;
+  let done=0,totalMinutes=0;
+  const rows=days.map(day=>{
+    const r=records[day];
+    const dm=new Date(day+"T00:00:00");
+    if(r&&r.on&&r.off)done++;
+    if(r&&r.on&&r.off){
+      const wh=workHours(r.on,r.off);
+      const m=parseInt(wh.replace(/h.*/,''))*60+parseInt(wh.replace(/.*h/,'').replace('m','')||0);
+      if(!isNaN(m))totalMinutes+=m;
+    }
+    let tagHtml="";
+    if(isHoliday(day)) tagHtml=`<span class="hist-tag hol">${holidayName(day)}</span>`;
+    else if(isExtraWork(day)) tagHtml=`<span class="hist-tag work">补班</span>`;
+    else if(isRestDay(day)) tagHtml=`<span class="hist-tag rest">休息日</span>`;
+    const statusColor=(r&&r.on&&r.off)?'var(--success)':((isWorkday(day)&&day<=todayStr())?'var(--danger)':'var(--rest)');
+    return `<div class="hist-row">
+      <div class="hist-row-left">
+        <span class="hist-status" style="background:${statusColor}"></span>
+        <div class="hist-date-box">
+          <span class="d">${day.slice(5)}</span>
+          <span class="w">${WEEK[dm.getDay()]}</span>
+        </div>
+        <div class="hist-tags">${tagHtml}</div>
+      </div>
+      <div class="hist-row-right">
+        <div class="hist-times">
+          <span class="t ${r.on?'':'no'}">${formatTimeForDisplay(r.on)}</span>
+          <span class="sep">-</span>
+          <span class="t ${r.off?'':'no'}">${formatTimeForDisplay(r.off)}</span>
+        </div>
+        <span class="hist-work">${workHours(r.on,r.off)}</span>
+        <button class="hist-delete" onclick="deleteHistoryRow('${day}')" aria-label="删除">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+  const meta=`${days.length} 天 · ${done} 次完整打卡`;
+  return `<div class="hist-month-header" onclick="toggleMonth(this)">
+      <span class="m-title">${title}</span>
+      <span class="m-meta">${meta}</span>
+      <span class="m-arrow">▼</span>
+    </div>
+    <div class="hist-month-body">${rows}</div>`;
+}
+function toggleMonth(header){
+  header.parentElement.classList.toggle("collapsed");
+}
+function loadMoreHistory(){
+  histLoadedMonths+=3;
+  renderHistory();
+}
+function deleteHistoryRow(day){
+  if(!confirm(`确定删除 ${day} 的打卡记录？`))return;
+  delete records[day];save();render();renderHistory();
+  showToast(`已删除 ${day} 的记录`);
+}
+
 function switchTab(t){
-  const punchBtn=document.getElementById("tabPunch"), calBtn=document.getElementById("tabCal"), glider=document.getElementById("tabGlider");
+  const punchBtn=document.getElementById("tabPunch"), calBtn=document.getElementById("tabCal"), histBtn=document.getElementById("tabHistory"), glider=document.getElementById("tabGlider");
   punchBtn.classList.toggle("active", t==="punch");
   calBtn.classList.toggle("active", t==="cal");
-  const active=t==="punch"?punchBtn:calBtn;
+  histBtn.classList.toggle("active", t==="history");
+  const active=t==="punch"?punchBtn:(t==="cal"?calBtn:histBtn);
   if(glider && active){
     glider.style.width=active.offsetWidth+"px";
     glider.style.transform=`translateX(${active.offsetLeft}px)`;
   }
   document.getElementById("panelPunch").classList.toggle("show",t==="punch");
   document.getElementById("panelCal").classList.toggle("show",t==="cal");
+  document.getElementById("panelHistory").classList.toggle("show",t==="history");
   if(t==="cal"){closeDayCard();calYear=new Date().getFullYear();calMonth=new Date().getMonth();loadHolidaysIfNeeded(calYear);renderCal();}
+  if(t==="history"){renderHistory();}
 }
 
 function shiftMonth(n){
@@ -613,6 +809,7 @@ function renderCal(){
   const grid=document.getElementById("calGrid");
   grid.innerHTML=cells.map(c=>{
     const isToday=c.d===tD;
+    const isFuture=c.d>tD;
     const hol=isHoliday(c.d), work=isExtraWork(c.d);
     const r=records[c.d];
     const checked=!!(r&&r.on&&r.off);
@@ -621,11 +818,13 @@ function renderCal(){
     if(c.d===selDate)cls.push("sel");
     if(c.other)cls.push("other");
     if(checked)cls.push("checked");
+    if(isFuture)cls.push("future");
     const restBadge=shouldShowRestBadge(c.d)?`<div class="cal-rest">休</div>`:"";
     const workBadge=work?`<div class="cal-work">班</div>`:"";
     const lbl=cellLabel(c.d);
     const lunarTxt=`<div class="cal-lunar ${lbl.cls}">${lbl.text}</div>`;
-    return `<div class="${cls.join(' ')}" onclick="selDay('${c.d}')">
+    const clickAttr=isFuture?"":`onclick="selDay('${c.d}')"`;
+    return `<div class="${cls.join(' ')}" ${clickAttr}>
       ${restBadge}${workBadge}
       <div class="cal-day">${parseInt(c.d.slice(8))}</div>
       ${lunarTxt}
@@ -634,24 +833,22 @@ function renderCal(){
 }
 
 function selDay(d){
+  if(d>todayStr())return;
   selDate=d;
-  const tD=todayStr();
   const dm=new Date(d+"T00:00:00");
   const r=records[d]||{};
-  const isFuture=d>tD;
   document.getElementById("ddDate").textContent=`${d} ${WEEK[dm.getDay()]}`;
   const tl=dayTypeLabel(d);
   const typeEl=document.getElementById("ddType");
   typeEl.textContent=tl.text;
   typeEl.className="day-card-type "+(tl.cls==="hol"?"hol":(tl.cls==="work"?"work":""));
   const onInput=document.getElementById("ddOnInput"),offInput=document.getElementById("ddOffInput");
-  onInput.value=r.on?r.on:"08:30";offInput.value=r.off?r.off:"18:00";
-  onInput.disabled=isFuture;offInput.disabled=isFuture;
-  document.getElementById("ddOnStatus").textContent=r.on?r.on:"未打卡";
-  document.getElementById("ddOffStatus").textContent=r.off?r.off:"未打卡";
+  onInput.value=r.on?r.on.slice(0,5):"08:30";offInput.value=r.off?r.off.slice(0,5):"18:00";
+  onInput.disabled=false;offInput.disabled=false;
+  document.getElementById("ddOnStatus").textContent=formatTimeForDisplay(r.on);
+  document.getElementById("ddOffStatus").textContent=formatTimeForDisplay(r.off);
   document.getElementById("ddWork").textContent=workHours(r.on,r.off);
-  document.getElementById("dayCardActions").style.display=isFuture?"none":"block";
-  document.getElementById("dayCardHint").style.display=isFuture?"block":"none";
+  document.getElementById("dayCardActions").style.display="block";
   document.getElementById("dayCard").classList.add("show");
   renderCal();
 }
@@ -691,7 +888,7 @@ function showToast(msg){
 function exportData(){
   const days=Object.keys(records).sort();
   if(days.length===0){alert("还没有数据可导出");return;}
-  const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息日";return `${day},${WEEK[dm.getDay()]},${r.on||""},${r.off||""},${workHours(r.on,r.off)},${t}`;}).join("\n");
+  const content="日期,星期,上班,下班,工时,类型\n"+days.map(day=>{const r=records[day];const dm=new Date(day+"T00:00:00");let t="工作日";if(isHoliday(day))t=holidayName(day);else if(isExtraWork(day))t="补班";else if(isRestDay(day))t="休息日";return `${day},${WEEK[dm.getDay()]},${formatTimeForDisplay(r.on)},${formatTimeForDisplay(r.off)},${workHours(r.on,r.off)},${t}`;}).join("\n");
   const blob=new Blob([content],{type:"text/csv"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="打卡记录.csv";a.click();
 }
