@@ -109,6 +109,7 @@
     display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .08s,filter .15s;box-shadow:var(--shadow-sm);
   }
   .punch-btn:active{transform:scale(.96);}
+  .punch-btn:disabled{opacity:.6;cursor:wait;transform:none;}
   .punch-btn .sub{font-size:13px;font-weight:600;opacity:.95;font-variant-numeric:tabular-nums;}
   .punch-btn.on{background:linear-gradient(135deg,#34d399,#059669);}
   .punch-btn.off{background:linear-gradient(135deg,#fbbf24,#d97706);}
@@ -461,14 +462,23 @@ async function api(method,path,body){
   const ct=res.headers.get("Content-Type")||"";
   return ct.includes("application/json")?res.json():null;
 }
-async function persistDay(date){
-  const r=records[date]||{};
-  try{await api("PUT",`/api/records/${date}`,{on:r.on||null,off:r.off||null});}
-  catch(e){showToast("保存失败："+e.message);console.error(e);}
+// 后端存活探测：打卡/保存前校验，防止后端未启动导致记录丢失
+async function backendAlive(){
+  try{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),3000);
+    const res=await fetch("/api/health",{cache:"no-store",signal:ctrl.signal});
+    clearTimeout(timer);
+    return res.ok;
+  }catch(e){return false;}
+}
+async function saveDay(date,payload){
+  try{await api("PUT",`/api/records/${date}`,{on:payload.on||null,off:payload.off||null});return true;}
+  catch(e){showToast("保存失败："+e.message);console.error(e);return false;}
 }
 async function deleteDayRemote(date){
-  try{await api("DELETE",`/api/records/${date}`);}
-  catch(e){showToast("删除失败："+e.message);console.error(e);}
+  try{await api("DELETE",`/api/records/${date}`);return true;}
+  catch(e){showToast("删除失败："+e.message);console.error(e);return false;}
 }
 async function clearAllRemote(){
   try{await api("DELETE","/api/records");}
@@ -511,10 +521,27 @@ function dayTypeLabel(d){
   return {cls:"",text:"工作日"};
 }
 
-function punch(date,type){
-  if(!records[date])records[date]={};
-  records[date][type]=timeNow();persistDay(date);renderPunch();
-  if(sheetDate===date)openDaySheet(date);
+let punching=false;
+async function punch(date,type){
+  if(punching)return;
+  punching=true;
+  const btnOn=document.getElementById("btnOn"),btnOff=document.getElementById("btnOff");
+  btnOn.disabled=true;btnOff.disabled=true;
+  try{
+    if(!(await backendAlive())){
+      showToast("后端服务未运行，打卡未保存，请先启动服务");
+      return;
+    }
+    const next={...(records[date]||{}),[type]:timeNow()};
+    if(await saveDay(date,next)){
+      records[date]=next;
+      renderPunch();
+      if(sheetDate===date)openDaySheet(date);
+    }
+  }finally{
+    punching=false;
+    btnOn.disabled=false;btnOff.disabled=false;
+  }
 }
 function delDay(d){if(!confirm(`确定删除 ${d} 的打卡记录？`))return;delete records[d];deleteDayRemote(d);renderPunch();renderHistory();}
 
@@ -594,18 +621,30 @@ function closeDaySheet(){
   setTimeout(()=>{sheetDate=null;},300);
 }
 function normalizeTime(v){if(!v)return"";if(v.length===5)return v+":00";return v;}
-function saveSheetEdit(){
+async function saveSheetEdit(){
   if(!sheetDate)return;
+  const date=sheetDate;
   const onIn=document.getElementById("sheetOnInput").value;
   const offIn=document.getElementById("sheetOffInput").value;
-  if(!records[sheetDate])records[sheetDate]={};
-  if(onIn)records[sheetDate].on=normalizeTime(onIn);else delete records[sheetDate].on;
-  if(offIn)records[sheetDate].off=normalizeTime(offIn);else delete records[sheetDate].off;
-  if(!records[sheetDate].on&&!records[sheetDate].off){delete records[sheetDate];deleteDayRemote(sheetDate);}
-  else persistDay(sheetDate);
+  if(!(await backendAlive())){
+    showToast("后端服务未运行，保存未生效，请先启动服务");
+    return;
+  }
+  const next={...(records[date]||{})};
+  if(onIn)next.on=normalizeTime(onIn);else delete next.on;
+  if(offIn)next.off=normalizeTime(offIn);else delete next.off;
+  let ok;
+  if(!next.on&&!next.off){
+    ok=await deleteDayRemote(date);
+    if(ok)delete records[date];
+  }else{
+    ok=await saveDay(date,next);
+    if(ok)records[date]=next;
+  }
+  if(!ok)return;
   renderPunch();renderCal();renderHistory();
-  const r=records[sheetDate]||{};document.getElementById("sheetWork").textContent=workHours(r.on,r.off);
-  showToast(`已更新 ${sheetDate} 的打卡时间`);
+  document.getElementById("sheetWork").textContent=workHours(next.on,next.off);
+  showToast(`已更新 ${date} 的打卡时间`);
 }
 
 function initHistoryPickers(){

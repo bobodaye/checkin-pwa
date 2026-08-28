@@ -346,6 +346,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     # ---------------- 路由 ----------------
     def do_GET(self):
+        if self.path == "/api/health":
+            return self._send_json(
+                200, {"ok": True, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            )
+
         if self.path == "/api/records":
             try:
                 return self._send_json(200, self._list_records())
